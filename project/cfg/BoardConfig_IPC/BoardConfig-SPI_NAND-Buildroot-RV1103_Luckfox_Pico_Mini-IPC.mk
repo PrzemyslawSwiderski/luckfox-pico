@@ -105,6 +105,7 @@ export RK_ENABLE_ROCKCHIP_TEST=y
 
 # enable rockchip wifi
 export RK_ENABLE_WIFI=y
+export RK_ENABLE_WIFI_CHIP=RTL8812EU
 
 # config wifi ssid and passwd
 export LF_WIFI_SSID="Your wifi ssid"
@@ -121,5 +122,4 @@ export RK_PRE_BUILD_OEM_SCRIPT=luckfox-buildroot-oem-pre.sh
 export RK_PRE_BUILD_USERDATA_SCRIPT=luckfox-userdata-pre.sh
 
 # declare overlay directory
-export RK_POST_OVERLAY="overlay-luckfox-config overlay-luckfox-buildroot-init overlay-luckfox-buildroot-shadow overlay-luckfox-buildroot-webbee overlay-luckfox-wifibt-firmware"
-
+export RK_POST_OVERLAY="overlay-luckfox-config overlay-luckfox-buildroot-init overlay-luckfox-buildroot-shadow overlay-luckfox-buildroot-webbee overlay-luckfox-wifibt-firmware custom-overlay"

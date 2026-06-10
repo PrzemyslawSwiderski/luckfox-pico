@@ -46,7 +46,9 @@ build-usb:
 ifneq ($(findstring $(RK_ENABLE_WIFI_CHIP),"RTL8188FTV"),)
 	@make -C rtl8188ftv/
 endif
-
+ifneq ($(findstring $(RK_ENABLE_WIFI_CHIP),"RTL8812EU"),)
+	@make -C rtl8812eu/
+endif
 ifneq ($(findstring $(RK_ENABLE_WIFI_CHIP),"SSV6X5X"),)
 	@make -C ssv6x5x/
 endif
