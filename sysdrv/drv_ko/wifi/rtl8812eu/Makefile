@@ -79,7 +79,7 @@ CONFIG_PCI_HCI = n
 CONFIG_SDIO_HCI = n
 CONFIG_GSPI_HCI = n
 ########################## Features ###########################
-CONFIG_AP_MODE = n
+CONFIG_AP_MODE = y
 CONFIG_P2P = n
 CONFIG_MP_INCLUDED = y
 CONFIG_POWER_SAVING = n
@@ -2630,6 +2630,7 @@ all: modules
 
 modules:
 	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KSRC) M=$(M)  modules
+	cp $(shell pwd)/8188fu.ko $(M_OUT_DIR)
 #	$(CC_STRIP) --strip-unneeded ${OUT_DIR}/$(M)/$(MODULE_NAME).ko
 
 strip:

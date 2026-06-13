@@ -11,7 +11,10 @@ export RK_CHIP=rv1106
 export RK_APP_TYPE=RKIPC_RV1103
 
 # Config CMA size in environment
-export RK_BOOTARGS_CMA_SIZE="24M"
+# 24M needed for the camera
+#export RK_BOOTARGS_CMA_SIZE="24M"
+# Freeing up for some other processes
+export RK_BOOTARGS_CMA_SIZE="20M"
 
 # Kernel dts
 export RK_KERNEL_DTS=rv1103g-luckfox-pico-mini.dts
@@ -105,7 +108,9 @@ export RK_ENABLE_ROCKCHIP_TEST=y
 
 # enable rockchip wifi
 export RK_ENABLE_WIFI=y
-export RK_ENABLE_WIFI_CHIP=RTL8812EU
+
+# disable ADB (using SSH)
+export RK_ENABLE_ADBD=n
 
 # config wifi ssid and passwd
 export LF_WIFI_SSID="Your wifi ssid"

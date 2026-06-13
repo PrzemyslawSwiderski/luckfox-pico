@@ -79,6 +79,9 @@ simple_build: $(OBJECTS)
 	@cp simple_cmd.txt $(SIMPLE_OUT_DIR)/bin/
 	$(call MAROC_COPY_PKG_TO_MEDIA_OUTPUT, $(RK_MEDIA_OUTPUT)/bin, $(SIMPLE_OUT_DIR)/bin)
 
+cyber_eye_bind: cyber_eye_bind.c
+	@$(SIMPLE_CC) $^ -o $@ $(SIMPLE_CFLAGS) $(SIMPLE_LD_FLAGS) -lrkaiq
+
 simple_adec_bind_ao: simple_adec_bind_ao.c
 	@$(SIMPLE_CC) $^ -o $@ $(SIMPLE_CFLAGS) $(SIMPLE_LD_FLAGS)
 
