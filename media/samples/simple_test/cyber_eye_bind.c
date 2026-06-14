@@ -1,29 +1,3 @@
-/*
- * Copyright 2022 Rockchip Electronics Co. LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
-/*
- * This demo merges:
- *  - AIQ/ISP init/run/stop logic (from the RV1106/RV1103 multi-channel demo)
- *  - VI -> VENC H264 streaming logic (from the simple VI/VENC demo)
- *
- * It lets you run the AIQ/ISP context AND stream H264 from VI at the
- * same time on RV1106/RV1103-class platforms.
- */
-
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -47,15 +21,9 @@ extern "C" {
 #include <time.h>
 #include <unistd.h>
 
-#ifdef RV1126_RV1109
-#include <rk_aiq_user_api_camgroup.h>
-#include <rk_aiq_user_api_imgproc.h>
-#include <rk_aiq_user_api_sysctl.h>
-#else
 #include <rk_aiq_user_api2_camgroup.h>
 #include <rk_aiq_user_api2_imgproc.h>
 #include <rk_aiq_user_api2_sysctl.h>
-#endif
 
 #include "rk_debug.h"
 #include "rk_defines.h"
@@ -102,7 +70,7 @@ static FILE *g_venc0_file = NULL;
 /* ------------------------------------------------------------------------ */
 
 static void sigterm_handler(int sig) {
-	fprintf(stderr, "signal %d\n", sig);
+    RK_LOGE("signal %d", sig);
 	g_quit = true;
 }
 
@@ -123,7 +91,7 @@ RK_U64 TEST_COMM_GetNowUs() {
 static XCamReturn SIMPLE_COMM_ISP_SofCb(rk_aiq_metas_t *meta) {
 	g_sof_cnt++;
 	if (g_sof_cnt <= 2)
-		printf("=== %u ===\n", meta->frame_id);
+		RK_LOGI("=== %u ===", meta->frame_id);
 	return XCAM_RETURN_NO_ERROR;
 }
 
@@ -136,13 +104,13 @@ static XCamReturn SIMPLE_COMM_ISP_ErrCb(rk_aiq_err_msg_t *msg) {
 RK_S32 SIMPLE_COMM_ISP_Init(RK_S32 CamId, rk_aiq_working_mode_t WDRMode, RK_BOOL MultiCam,
                             const char *iq_file_dir) {
 	if (CamId >= MAX_AIQ_CTX) {
-		printf("%s : CamId is over %d\n", __FUNCTION__, MAX_AIQ_CTX);
+		RK_PRINT("%s : CamId is over %d\n", __FUNCTION__, MAX_AIQ_CTX);
 		return -1;
 	}
 
 	setlinebuf(stdout);
 	if (iq_file_dir == NULL) {
-		printf("SIMPLE_COMM_ISP_Init : not start.\n");
+		RK_PRINT("SIMPLE_COMM_ISP_Init : not start.\n");
 		g_aiq_ctx[CamId] = NULL;
 		return 0;
 	}
@@ -150,28 +118,15 @@ RK_S32 SIMPLE_COMM_ISP_Init(RK_S32 CamId, rk_aiq_working_mode_t WDRMode, RK_BOOL
 	/* must set HDR_MODE before init */
 	g_WDRMode[CamId] = WDRMode;
 	char hdr_str[16];
-	snprintf(hdr_str, sizeof(hdr_str), "%d", (int)WDRMode);
+    snprintf(hdr_str, sizeof(hdr_str), "%d", (int)WDRMode);
 	setenv("HDR_MODE", hdr_str, 1);
 
 	rk_aiq_sys_ctx_t *aiq_ctx;
 	rk_aiq_static_info_t aiq_static_info;
 
-#ifdef RV1126_RV1109
-	rk_aiq_uapi_sysctl_enumStaticMetas(CamId, &aiq_static_info);
-
-	printf("ID: %d, sensor_name is %s, iqfiles is %s\n", CamId,
-	       aiq_static_info.sensor_info.sensor_name, iq_file_dir);
-
-	aiq_ctx =
-	    rk_aiq_uapi_sysctl_init(aiq_static_info.sensor_info.sensor_name, iq_file_dir,
-	                             SIMPLE_COMM_ISP_ErrCb, SIMPLE_COMM_ISP_SofCb);
-
-	if (MultiCam)
-		rk_aiq_uapi_sysctl_setMulCamConc(aiq_ctx, true);
-#else
 	rk_aiq_uapi2_sysctl_enumStaticMetas(CamId, &aiq_static_info);
 
-	printf("ID: %d, sensor_name is %s, iqfiles is %s\n", CamId,
+	RK_PRINT("ID: %d, sensor_name is %s, iqfiles is %s\n", CamId,
 	       aiq_static_info.sensor_info.sensor_name, iq_file_dir);
 
 	aiq_ctx =
@@ -180,64 +135,55 @@ RK_S32 SIMPLE_COMM_ISP_Init(RK_S32 CamId, rk_aiq_working_mode_t WDRMode, RK_BOOL
 
 	if (MultiCam)
 		rk_aiq_uapi2_sysctl_setMulCamConc(aiq_ctx, true);
-#endif
+
+//     rk_aiq_rotation_t rot = RK_AIQ_ROTATION_90;
+//     rk_aiq_uapi2_sysctl_setSharpFbcRotation(aiq_ctx, rot);
+
+//     rk_aiq_mems_sensor_intf_t intf = {0};
+//     const char* main_scene = "good";
+//     const char* sub_scene = "bad";
+//     rk_aiq_uapi2_sysctl_setMulCamConc(aiq_ctx, true);
+//     rk_aiq_uapi2_sysctl_regMemsSensorIntf(aiq_ctx, &intf);
+//     rk_aiq_uapi2_sysctl_switch_scene(aiq_ctx, main_scene, sub_scene);
+
+
 	g_aiq_ctx[CamId] = aiq_ctx;
 	return 0;
 }
 
 RK_S32 SIMPLE_COMM_ISP_Run(RK_S32 CamId) {
 	if (CamId >= MAX_AIQ_CTX || !g_aiq_ctx[CamId]) {
-		printf("%s : CamId is over %d or not init\n", __FUNCTION__, MAX_AIQ_CTX);
+		RK_PRINT("%s : CamId is over %d or not init\n", __FUNCTION__, MAX_AIQ_CTX);
 		return -1;
 	}
 
-#ifdef RV1126_RV1109
-	if (rk_aiq_uapi_sysctl_prepare(g_aiq_ctx[CamId], 0, 0, g_WDRMode[CamId])) {
-		printf("rkaiq engine prepare failed !\n");
-		g_aiq_ctx[CamId] = NULL;
-		return -1;
-	}
-	printf("rk_aiq_uapi_sysctl_init/prepare succeed\n");
-	if (rk_aiq_uapi_sysctl_start(g_aiq_ctx[CamId])) {
-		printf("rk_aiq_uapi_sysctl_start  failed\n");
-		return -1;
-	}
-	printf("rk_aiq_uapi_sysctl_start succeed\n");
-#else
 	if (rk_aiq_uapi2_sysctl_prepare(g_aiq_ctx[CamId], 0, 0, g_WDRMode[CamId])) {
-		printf("rkaiq engine prepare failed !\n");
+		RK_PRINT("rkaiq engine prepare failed !\n");
 		g_aiq_ctx[CamId] = NULL;
 		return -1;
 	}
-	printf("rk_aiq_uapi2_sysctl_init/prepare succeed\n");
+	RK_PRINT("rk_aiq_uapi2_sysctl_init/prepare succeed\n");
 	if (rk_aiq_uapi2_sysctl_start(g_aiq_ctx[CamId])) {
-		printf("rk_aiq_uapi2_sysctl_start  failed\n");
+		RK_PRINT("rk_aiq_uapi2_sysctl_start  failed\n");
 		return -1;
 	}
-	printf("rk_aiq_uapi2_sysctl_start succeed\n");
-#endif
+	RK_PRINT("rk_aiq_uapi2_sysctl_start succeed\n");
+
 	return 0;
 }
 
 RK_S32 SIMPLE_COMM_ISP_Stop(RK_S32 CamId) {
 	if (CamId >= MAX_AIQ_CTX || !g_aiq_ctx[CamId]) {
-		printf("%s : CamId is over %d or not init g_aiq_ctx[%d] = %p\n", __FUNCTION__,
+		RK_PRINT("%s : CamId is over %d or not init g_aiq_ctx[%d] = %p\n", __FUNCTION__,
 		       MAX_AIQ_CTX, CamId, g_aiq_ctx[CamId]);
 		return -1;
 	}
-#ifdef RV1126_RV1109
-	printf("rk_aiq_uapi_sysctl_stop enter\n");
-	rk_aiq_uapi_sysctl_stop(g_aiq_ctx[CamId], false);
-	printf("rk_aiq_uapi_sysctl_deinit enter\n");
-	rk_aiq_uapi_sysctl_deinit(g_aiq_ctx[CamId]);
-	printf("rk_aiq_uapi_sysctl_deinit exit\n");
-#else
-	printf("rk_aiq_uapi2_sysctl_stop enter\n");
+	RK_PRINT("rk_aiq_uapi2_sysctl_stop enter\n");
 	rk_aiq_uapi2_sysctl_stop(g_aiq_ctx[CamId], false);
-	printf("rk_aiq_uapi2_sysctl_deinit enter\n");
+	RK_PRINT("rk_aiq_uapi2_sysctl_deinit enter\n");
 	rk_aiq_uapi2_sysctl_deinit(g_aiq_ctx[CamId]);
-	printf("rk_aiq_uapi2_sysctl_deinit exit\n");
-#endif
+	RK_PRINT("rk_aiq_uapi2_sysctl_deinit exit\n");
+
 	g_aiq_ctx[CamId] = NULL;
 	return 0;
 }
@@ -247,7 +193,7 @@ RK_S32 SIMPLE_COMM_ISP_Stop(RK_S32 CamId) {
 /* ------------------------------------------------------------------------ */
 
 static int vi_dev_init(void) {
-	printf("%s\n", __func__);
+	RK_LOGI("%s", __func__);
 	int ret = 0;
 	int devId = 0;
 	int pipeId = devId;
@@ -263,11 +209,11 @@ static int vi_dev_init(void) {
 		/* 0-1. config dev */
 		ret = RK_MPI_VI_SetDevAttr(devId, &stDevAttr);
 		if (ret != RK_SUCCESS) {
-			printf("RK_MPI_VI_SetDevAttr %x\n", ret);
+			RK_LOGI("RK_MPI_VI_SetDevAttr %x", ret);
 			return -1;
 		}
 	} else {
-		printf("RK_MPI_VI_SetDevAttr already\n");
+		RK_LOGI("RK_MPI_VI_SetDevAttr already");
 	}
 
 	/* 1. get dev enable status */
@@ -276,7 +222,7 @@ static int vi_dev_init(void) {
 		/* 1-2. enable dev */
 		ret = RK_MPI_VI_EnableDev(devId);
 		if (ret != RK_SUCCESS) {
-			printf("RK_MPI_VI_EnableDev %x\n", ret);
+			RK_LOGI("RK_MPI_VI_EnableDev %x", ret);
 			return -1;
 		}
 		/* 1-3. bind dev/pipe */
@@ -284,11 +230,11 @@ static int vi_dev_init(void) {
 		stBindPipe.PipeId[0] = pipeId;
 		ret = RK_MPI_VI_SetDevBindPipe(devId, &stBindPipe);
 		if (ret != RK_SUCCESS) {
-			printf("RK_MPI_VI_SetDevBindPipe %x\n", ret);
+			RK_LOGI("RK_MPI_VI_SetDevBindPipe %x", ret);
 			return -1;
 		}
 	} else {
-		printf("RK_MPI_VI_EnableDev already\n");
+		RK_LOGI("RK_MPI_VI_EnableDev already");
 	}
 
 	return 0;
@@ -304,6 +250,11 @@ static int vi_chn_init(int channelId, int width, int height) {
 	vi_chn_attr.stIspOpt.enMemoryType = VI_V4L2_MEMORY_TYPE_DMABUF;
 	vi_chn_attr.stSize.u32Width = width;
 	vi_chn_attr.stSize.u32Height = height;
+    // 	Sadly SC3336 does not support higher frame rates
+	vi_chn_attr.stFrameRate.s32SrcFrameRate = 30;
+	vi_chn_attr.stFrameRate.s32DstFrameRate = 30;
+	vi_chn_attr.bMirror = RK_FALSE;
+	vi_chn_attr.bFlip = RK_FALSE;
 	vi_chn_attr.enPixelFormat = RK_FMT_YUV420SP;
 	vi_chn_attr.enCompressMode = COMPRESS_MODE_NONE;
 	/* 0: get fail, 1..u32BufCount: ok; if bound to another device, must be < u32BufCount */
@@ -311,7 +262,7 @@ static int vi_chn_init(int channelId, int width, int height) {
 	ret = RK_MPI_VI_SetChnAttr(0, channelId, &vi_chn_attr);
 	ret |= RK_MPI_VI_EnableChn(0, channelId);
 	if (ret) {
-		printf("ERROR: create VI error! ret=%d\n", ret);
+		RK_LOGI("ERROR: create VI error! ret=%d", ret);
 		return ret;
 	}
 
@@ -319,41 +270,39 @@ static int vi_chn_init(int channelId, int width, int height) {
 }
 
 /* ------------------------------------------------------------------------ */
-/* VENC init (H264 / H265 / MJPEG)                                            */
+/* VENC init (H264)                                                         */
 /* ------------------------------------------------------------------------ */
 
-static RK_S32 test_venc_init(int chnId, int width, int height, RK_CODEC_ID_E enType) {
-	printf("========%s========\n", __func__);
+static RK_S32 venc_init(int chnId, int width, int height) {
+	RK_LOGI("========%s========\n", __func__);
 	VENC_RECV_PIC_PARAM_S stRecvParam;
 	VENC_CHN_ATTR_S stAttr;
 	memset(&stAttr, 0, sizeof(VENC_CHN_ATTR_S));
 
-	if (enType == RK_VIDEO_ID_AVC) {
-		stAttr.stRcAttr.enRcMode = VENC_RC_MODE_H264CBR;
-		stAttr.stRcAttr.stH264Cbr.u32BitRate = 10 * 1024;
-		stAttr.stRcAttr.stH264Cbr.u32Gop = 60;
-	} else if (enType == RK_VIDEO_ID_HEVC) {
-		stAttr.stRcAttr.enRcMode = VENC_RC_MODE_H265CBR;
-		stAttr.stRcAttr.stH265Cbr.u32BitRate = 10 * 1024;
-		stAttr.stRcAttr.stH265Cbr.u32Gop = 60;
-	} else if (enType == RK_VIDEO_ID_MJPEG) {
-		stAttr.stRcAttr.enRcMode = VENC_RC_MODE_MJPEGCBR;
-		stAttr.stRcAttr.stMjpegCbr.u32BitRate = 10 * 1024;
-	}
+	stAttr.stRcAttr.enRcMode = VENC_RC_MODE_H264CBR;
+    stAttr.stRcAttr.stH264Cbr.u32BitRate = 10 * 1024;
+    stAttr.stRcAttr.stH264Cbr.u32Gop = 30;
 
-	stAttr.stVencAttr.enType = enType;
+	stAttr.stVencAttr.enType = RK_VIDEO_ID_AVC;
 	stAttr.stVencAttr.enPixelFormat = RK_FMT_YUV420SP;
-	if (enType == RK_VIDEO_ID_AVC)
-		stAttr.stVencAttr.u32Profile = H264E_PROFILE_HIGH;
+	stAttr.stVencAttr.u32Profile = H264E_PROFILE_HIGH;
 	stAttr.stVencAttr.u32PicWidth = width;
 	stAttr.stVencAttr.u32PicHeight = height;
 	stAttr.stVencAttr.u32VirWidth = width;
 	stAttr.stVencAttr.u32VirHeight = height;
-	stAttr.stVencAttr.u32StreamBufCnt = 2;
+	stAttr.stVencAttr.u32StreamBufCnt = 1;
 	stAttr.stVencAttr.u32BufSize = width * height * 3 / 2;
 	stAttr.stVencAttr.enMirror = MIRROR_NONE;
+// 	stAttr.stVencAttr.enMirror = MIRROR_VERTICAL;
+// 	stAttr.stVencAttr.enMirror = MIRROR_HORIZONTAL;
 
 	RK_MPI_VENC_CreateChn(chnId, &stAttr);
+
+    RK_S32 s32Ret = RK_FAILURE;
+	s32Ret = RK_MPI_VENC_SetChnRotation(chnId, ROTATION_180);
+	if (s32Ret != RK_SUCCESS) {
+		RK_LOGE("RK_MPI_VENC_SetChnRotation failure:%X", s32Ret);
+	}
 
 	memset(&stRecvParam, 0, sizeof(VENC_RECV_PIC_PARAM_S));
 	stRecvParam.s32RecvPicNum = -1;
@@ -368,7 +317,7 @@ static RK_S32 test_venc_init(int chnId, int width, int height, RK_CODEC_ID_E enT
 
 static void *GetMediaBuffer0(void *arg) {
 	(void)arg;
-	printf("========%s========\n", __func__);
+	RK_LOGI("========%s========", __func__);
 	void *pData = RK_NULL;
 	RK_U64 loopCount = 0;
 	int s32Ret;
@@ -390,7 +339,7 @@ static void *GetMediaBuffer0(void *arg) {
 			}
 			RK_U64 nowUs = TEST_COMM_GetNowUs();
 
-			RK_LOGD("chn:0, loopCount:%llu enc->seq:%d wd:%d pts=%lld delay=%lldus\n",
+			RK_LOGD("chn:0, loopCount:%llu enc->seq:%d wd:%d pts=%lld delay=%lldus",
 			        (unsigned long long)loopCount, stFrame.u32Seq, stFrame.pstPack->u32Len,
 			        stFrame.pstPack->u64PTS, nowUs - stFrame.pstPack->u64PTS);
 
@@ -439,21 +388,18 @@ static const struct option long_options[] = {
 };
 
 static void print_usage(const RK_CHAR *name) {
-	printf("usage example:\n");
-	printf("\t%s -I 0 -w 1920 -h 1080 -e h264 -o /tmp/venc.h264 -a /etc/iqfiles/\n", name);
-	printf("\t-w | --width:     VI width, Default: 1920\n");
-	printf("\t-h | --height:    VI height, Default: 1080\n");
-	printf("\t-c | --frame_cnt: frame count of output, Default: -1 (unlimited)\n");
-	printf("\t-I | --camid:     VI channel id, Default: 0. "
-	       "0:rkisp_mainpath,1:rkisp_selfpath,2:rkisp_bypasspath\n");
-	printf("\t-e | --encode:    encode type, Default: h264, Values: h264, h265, mjpeg\n");
-	printf("\t-o | --output:    output file path, Default: NULL\n");
-#ifdef RKAIQ
-	printf("\t-a | --aiq:       enable AIQ/ISP with iqfiles dir, e.g. -a /etc/iqfiles/, "
-	       "empty path uses the default location.\n"
-	       "\t                  Without this option AIQ must be started by another "
-	       "application.\n");
-#endif
+	RK_PRINT("usage example:\n");
+	RK_PRINT("\t%s -I 0 -w 1280 -h 720 -e h264 -o /tmp/venc.h264 -a /etc/iqfiles/\n", name);
+	RK_PRINT("\t-w | --width:     VI width, Default: 1280\n");
+	RK_PRINT("\t-h | --height:    VI height, Default: 720\n");
+	RK_PRINT("\t-c | --frame_cnt: frame count of output, Default: -1 (unlimited)\n");
+	RK_PRINT("\t-I | --camid:     VI channel id, Default: 0. "
+	        "0:rkisp_mainpath,1:rkisp_selfpath,2:rkisp_bypasspath\n");
+	RK_PRINT("\t-o | --output:    output file path, Default: NULL\n");
+	RK_PRINT("\t-a | --aiq:       enable AIQ/ISP with iqfiles dir, e.g. -a /etc/iqfiles/, \n"
+	        "empty path uses the default location.\n"
+	        "\t                  Without this option AIQ must be started by another \n"
+	        "application.\n");
 }
 
 /* ------------------------------------------------------------------------ */
@@ -462,21 +408,18 @@ static void print_usage(const RK_CHAR *name) {
 
 int main(int argc, char *argv[]) {
 	RK_S32 s32Ret = RK_FAILURE;
-	RK_U32 u32Width = 1920;
-	RK_U32 u32Height = 1080;
+	RK_U32 u32Width = 1280;
+	RK_U32 u32Height = 720;
 	RK_CHAR *pOutPath = NULL;
-	RK_CODEC_ID_E enCodecType = RK_VIDEO_ID_AVC;
 	RK_CHAR *pCodecName = "H264";
 	RK_S32 s32chnlId = 0;
 	int c;
 	int ret = -1;
 	char *iq_file_dir = NULL;
-#ifdef RKAIQ
 	RK_S32 s32CamId = 0;
 	rk_aiq_working_mode_t hdr_mode = RK_AIQ_WORKING_MODE_NORMAL;
 	RK_BOOL bMultictx = RK_FALSE;
 	bool aiq_started = false;
-#endif
 
 	while ((c = getopt_long(argc, argv, optstr, long_options, NULL)) != -1) {
 		const char *tmp_optarg = optarg;
@@ -492,21 +435,6 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'c':
 			g_s32FrameCnt = (RK_U64)atoi(optarg);
-			break;
-		case 'e':
-			if (!strcmp(optarg, "h264")) {
-				enCodecType = RK_VIDEO_ID_AVC;
-				pCodecName = "H264";
-			} else if (!strcmp(optarg, "h265")) {
-				enCodecType = RK_VIDEO_ID_HEVC;
-				pCodecName = "H265";
-			} else if (!strcmp(optarg, "mjpeg")) {
-				enCodecType = RK_VIDEO_ID_MJPEG;
-				pCodecName = "MJPEG";
-			} else {
-				printf("ERROR: Invalid encoder type.\n");
-				return -1;
-			}
 			break;
 		case 'o':
 			pOutPath = optarg;
@@ -524,12 +452,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	printf("#CodecName: %s\n", pCodecName);
-	printf("#Resolution: %dx%d\n", u32Width, u32Height);
-	printf("#Output Path: %s\n", pOutPath);
-	printf("#CameraIdx: %d\n", s32chnlId);
-	printf("#Frame Count to save: %lld\n", (long long)g_s32FrameCnt);
-	printf("#IQ Path: %s\n\n", iq_file_dir);
+	RK_PRINT("# VERSION: Cyber-eye-1.0.1\n");
+	RK_PRINT("CodecName: %s\n", pCodecName);
+	RK_PRINT("Resolution: %dx%d\n", u32Width, u32Height);
+	RK_PRINT("Output Path: %s\n", pOutPath);
+	RK_PRINT("CameraIdx: %d\n", s32chnlId);
+	RK_PRINT("Frame Count to save: %lld\n", (long long)g_s32FrameCnt);
+	RK_PRINT("IQ Path: %s\n\n", iq_file_dir);
 
 	signal(SIGINT, sigterm_handler);
 	signal(SIGTERM, sigterm_handler);
@@ -537,35 +466,31 @@ int main(int argc, char *argv[]) {
 	/* -------------------------------------------------------------- */
 	/* Start AIQ/ISP first (it must run before MPI/VI starts streaming) */
 	/* -------------------------------------------------------------- */
-#ifdef RKAIQ
 	if (iq_file_dir) {
-		printf("#Rkaiq XML DirPath: %s\n", iq_file_dir);
-		printf("#bMultictx: %d\n\n", bMultictx);
+		RK_PRINT("Rkaiq XML DirPath: %s\n", iq_file_dir);
+		RK_PRINT("bMultictx: %d\n\n", bMultictx);
 
 		s32Ret = SIMPLE_COMM_ISP_Init(s32CamId, hdr_mode, bMultictx, iq_file_dir);
 		s32Ret |= SIMPLE_COMM_ISP_Run(s32CamId);
 		if (s32Ret != RK_SUCCESS) {
-			RK_LOGE("ISP init failure:%X", s32Ret);
+			RK_PRINT("ISP init failure:%X\n", s32Ret);
 			return -1;
 		}
 		aiq_started = true;
 	}
-#endif
 
 	if (pOutPath) {
 		g_venc0_file = fopen(pOutPath, "w");
 		if (!g_venc0_file) {
-			printf("ERROR: open file: %s fail, exit\n", pOutPath);
-#ifdef RKAIQ
+			RK_PRINT("ERROR: open file: %s fail, exit\n", pOutPath);
 			if (aiq_started)
 				SIMPLE_COMM_ISP_Stop(s32CamId);
-#endif
 			return 0;
 		}
 	}
 
 	if (RK_MPI_SYS_Init() != RK_SUCCESS) {
-		RK_LOGE("rk mpi sys init fail!");
+		RK_PRINT("rk mpi sys init fail!\n");
 		goto __FAILED;
 	}
 
@@ -573,7 +498,7 @@ int main(int argc, char *argv[]) {
 	vi_chn_init(s32chnlId, u32Width, u32Height);
 
 	/* venc init */
-	test_venc_init(0, u32Width, u32Height, enCodecType);
+	venc_init(0, u32Width, u32Height);
 
 	MPP_CHN_S stSrcChn, stDestChn;
 	/* bind vi to venc */
@@ -584,7 +509,7 @@ int main(int argc, char *argv[]) {
 	stDestChn.enModId = RK_ID_VENC;
 	stDestChn.s32DevId = 0;
 	stDestChn.s32ChnId = 0;
-	printf("====RK_MPI_SYS_Bind vi%d to venc0====\n", s32chnlId);
+	RK_LOGI("====RK_MPI_SYS_Bind vi%d to venc0====", s32chnlId);
 	s32Ret = RK_MPI_SYS_Bind(&stSrcChn, &stDestChn);
 	if (s32Ret != RK_SUCCESS) {
 		RK_LOGE("bind vi%d to venc0 failed:%x", s32chnlId, s32Ret);
@@ -594,13 +519,11 @@ int main(int argc, char *argv[]) {
 	pthread_t main_thread;
 	pthread_create(&main_thread, NULL, GetMediaBuffer0, NULL);
 
-	printf("%s initial finish\n", __func__);
+	RK_LOGI("%s initial finish", __func__);
 
 	while (!g_quit) {
-#ifdef RKAIQ
 		if (g_should_quit_aiq)
 			g_quit = true;
-#endif
 		usleep(50000);
 	}
 	pthread_join(main_thread, NULL);
@@ -634,10 +557,8 @@ __FAILED:
 	RK_LOGE("test running exit:%d", s32Ret);
 	RK_MPI_SYS_Exit();
 
-#ifdef RKAIQ
 	if (aiq_started)
 		SIMPLE_COMM_ISP_Stop(s32CamId);
-#endif
 
 	return ret;
 }

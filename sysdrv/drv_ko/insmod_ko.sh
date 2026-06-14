@@ -86,5 +86,6 @@ __insmod rve.ko
 
 udevadm control --start-exec-queue
 
+# DISABLE RESOURCE CONSUMING WIFI START
 # insmod wifi driver background
-$(pwd)/insmod_wifi.sh &
+# $(pwd)/insmod_wifi.sh &

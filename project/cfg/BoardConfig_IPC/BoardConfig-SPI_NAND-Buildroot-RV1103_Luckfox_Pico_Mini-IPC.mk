@@ -14,7 +14,7 @@ export RK_APP_TYPE=RKIPC_RV1103
 # 24M needed for the camera
 #export RK_BOOTARGS_CMA_SIZE="24M"
 # Freeing up for some other processes
-export RK_BOOTARGS_CMA_SIZE="20M"
+export RK_BOOTARGS_CMA_SIZE="18M"
 
 # Kernel dts
 export RK_KERNEL_DTS=rv1103g-luckfox-pico-mini.dts
